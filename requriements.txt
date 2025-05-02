@@ -1,0 +1,23 @@
+# Core dependencies
+langchain>=0.1.0
+langchain-community>=0.0.10
+langchain-core>=0.1.10
+langgraph>=0.0.15
+langchain-openai>=0.0.2
+
+# Model and tools
+langchain-ollama>=0.0.1
+python-dotenv>=1.0.0
+
+# Web interface
+streamlit>=1.30.0
+
+# Type hints and annotations
+typing-extensions>=4.8.0
+pydantic>=2.0.0
+
+# API integrations
+tavily-python>=0.1.9
+
+# Development tools
+ipython>=8.0.0  # 用于图形可视化（可选）
