@@ -160,6 +160,7 @@ from typing_extensions import TypedDict
 from typing import List, Annotated
 from langchain.schema import Document
 from langgraph.graph import END
+from langgraph.graph.message import add_messages
 
 # 定义图状态
 class GraphState(TypedDict):
@@ -170,6 +171,7 @@ class GraphState(TypedDict):
     answers: int                                       # 生成的答案数
     loop_step: Annotated[int, operator.add]            
     documents: List[str]                               # 检索到的文档列表
+    messages: Annotated[list, add_messages]
 
 # ============= Node ================
 # 根据问题检索文档
@@ -375,13 +377,14 @@ workflow.add_conditional_edges(
 # 编译图
 graph = workflow.compile()
 
+# ====================== 对话管理函数 ======================
 
+# 格式化输出函数
 def format_output(event):
     """格式化输出结果"""
     if "generation" in event:
         return f"\nAnswer:\n{event['generation'].content}"
     return None
-
 
 inputs = {
     "question": "What are the models released today for llama3.2?",
@@ -391,4 +394,24 @@ inputs = {
 for event in graph.stream(inputs, stream_mode="values"):
     output = format_output(event)
     if output:
-        print(output)
+        print(output)                                                                                                          
+如何给这段代码线程级持久化记忆功能，使其可以依据上下文连续对话 ，按照下述步骤，请一步一步的分析， 要求使用                                                                                                          
+from langgraph.checkpoint.memory import MemorySaver
+checkpointer = MemorySaver()
+graph.compile(checkpointer=checkpointer) 
+总结步骤
+
+1. 修改GraphState，加入messages字段(添加messages: Annotated[list, add_messages], 不要修改成其他的添加形式)，使用add_messages来处理消息追加。同时保留状态所有原有字段，不考虑冗余问题，
+要求messages里面只包含每次对话的问题和答案，并在下次回答是传给LLM, 使其具有历史记忆
+
+2. 调整所有节点和所有边函数，包括retrieve, generate, grade_documents, web_search, route_question, decide_to_generate, grade_generation_v_documents_and_question
+   使其可以动态更新messages,
+
+3. 检查rag_prompt, doc_grader_instructions, doc_grader_prompt, router_instructions, hallucination_grader_instructions, hallucination_grader_prompt, answer_grader_instructions等是否需要调整吧，如果需要调整，请调整
+
+4. 在编译图时添加MemorySaver作为检查点。在调用图时，使用thread_id来区分不同线程，确保状态持久化。
+
+5. 确保所有状态正确序列化。 确保所有需要的状态都被正确保存和恢复。确保每次生成回答后，messages会包含完整的对话历史，供后续步骤使用
+
+需要注意的是，可能需要在每次调用时，将用户的新消息追加到现有的messages中，
+而MemorySaver会基于thread_id恢复之前的状态，包括之前的messages和其他字段，从而实现连续对话。

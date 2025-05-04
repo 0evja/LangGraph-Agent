@@ -70,7 +70,7 @@ events = graph.stream(
 
 for event in events:
     if "messages" in event:
-        event["messages"][-1].pretty_print()  # -1表示只打印最新的消息，因为消息是追加的，孩子。
+        event["messages"][-1].pretty_print()  # -1表示只打印最新的消息，因为消息是追加
 
 
 events = graph.stream(
